@@ -515,6 +515,8 @@ public:
     // temperature calibration handling
     AP_TempCalibration temp_calibration;
 
+    //ADAP_Control adap_control;
+
 #if BEACON_ENABLED == ENABLED
     // beacon (non-GPS positioning) library
     AP_Beacon beacon;

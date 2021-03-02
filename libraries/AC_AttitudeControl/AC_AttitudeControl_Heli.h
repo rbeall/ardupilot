@@ -4,6 +4,7 @@
 /// @brief   ArduCopter attitude control library for traditional helicopters
 
 #include "AC_AttitudeControl.h"
+#include <ADAP_Control/ADAP_Control.h>
 #include <AP_Motors/AP_MotorsHeli.h>
 #include <AC_PID/AC_HELI_PID.h>
 #include <Filter/Filter.h>
@@ -56,6 +57,10 @@ public:
     AC_PID& get_rate_roll_pid() override { return _pid_rate_roll; }
     AC_PID& get_rate_pitch_pid() override { return _pid_rate_pitch; }
     AC_PID& get_rate_yaw_pid() override { return _pid_rate_yaw; }
+
+    // Adaptive ctrl accessors
+    ADAP_Control& get_rate_roll_adap() {return _adap_ctrl_roll; }
+    ADAP_Control& get_rate_pitch_adap() {return _adap_ctrl_pitch; }
 
     // passthrough_bf_roll_pitch_rate_yaw - roll and pitch are passed through directly, body-frame rate target for yaw
     void passthrough_bf_roll_pitch_rate_yaw(float roll_passthrough, float pitch_passthrough, float yaw_rate_bf_cds) override;
@@ -159,5 +164,7 @@ private:
     AC_HELI_PID     _pid_rate_roll;
     AC_HELI_PID     _pid_rate_pitch;
     AC_HELI_PID     _pid_rate_yaw;
-    
+
+    ADAP_Control          _adap_ctrl_roll;
+    ADAP_Control          _adap_ctrl_pitch;
 };

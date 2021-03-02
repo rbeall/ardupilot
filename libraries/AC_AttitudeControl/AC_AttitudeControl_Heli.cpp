@@ -242,6 +242,10 @@ const AP_Param::GroupInfo AC_AttitudeControl_Heli::var_info[] = {
     // @Values: 0:Disabled,1:Enabled
     // @User: Advanced
     AP_GROUPINFO("PIRO_COMP",    5, AC_AttitudeControl_Heli, _piro_comp_enabled, 0),
+
+
+    AP_SUBGROUPINFO(_adap_ctrl_roll, "AD_RLL_", 6, AC_AttitudeControl_Heli, ADAP_Control),
+    AP_SUBGROUPINFO(_adap_ctrl_pitch, "AD_PIT_", 7, AC_AttitudeControl_Heli, ADAP_Control),
     
     AP_GROUPEND
 };
@@ -383,24 +387,25 @@ void AC_AttitudeControl_Heli::update_althold_lean_angle_max(float throttle_in)
 void AC_AttitudeControl_Heli::rate_bf_to_motor_roll_pitch(const Vector3f &rate_rads, float rate_roll_target_rads, float rate_pitch_target_rads)
 {
 
+float roll_out;
+float pitch_out;
+
+if(_adap_ctrl_roll.enabled())
+{
+    roll_out = get_rate_roll_adap().update(AP::ins().get_loop_rate_hz(), rate_roll_target_rads, rate_rads.x);
+}
+else
+{
     if (_flags_heli.leaky_i) {
         _pid_rate_roll.update_leaky_i(AC_ATTITUDE_HELI_RATE_INTEGRATOR_LEAK_RATE);
     }
     float roll_pid = _pid_rate_roll.update_all(rate_roll_target_rads, rate_rads.x,  _motors.limit.roll) + _actuator_sysid.x;
-
-    if (_flags_heli.leaky_i) {
-        _pid_rate_pitch.update_leaky_i(AC_ATTITUDE_HELI_RATE_INTEGRATOR_LEAK_RATE);
-    }
-
-    float pitch_pid = _pid_rate_pitch.update_all(rate_pitch_target_rads, rate_rads.y,  _motors.limit.pitch) + _actuator_sysid.y;
-
+    
     // use pid library to calculate ff
     float roll_ff = _pid_rate_roll.get_ff();
-    float pitch_ff = _pid_rate_pitch.get_ff();
 
     // add feed forward and final output
-    float roll_out = roll_pid + roll_ff;
-    float pitch_out = pitch_pid + pitch_ff;
+    roll_out = roll_pid + roll_ff;
 
     // constrain output and update limit flags
     if (fabsf(roll_out) > AC_ATTITUDE_RATE_RP_CONTROLLER_OUT_MAX) {
@@ -409,35 +414,57 @@ void AC_AttitudeControl_Heli::rate_bf_to_motor_roll_pitch(const Vector3f &rate_r
     } else {
         _flags_heli.limit_roll = false;
     }
-    if (fabsf(pitch_out) > AC_ATTITUDE_RATE_RP_CONTROLLER_OUT_MAX) {
-        pitch_out = constrain_float(pitch_out, -AC_ATTITUDE_RATE_RP_CONTROLLER_OUT_MAX, AC_ATTITUDE_RATE_RP_CONTROLLER_OUT_MAX);
-        _flags_heli.limit_pitch = true;
-    } else {
-        _flags_heli.limit_pitch = false;
+}
+
+if(_adap_ctrl_pitch.enabled())
+{
+    pitch_out = get_rate_pitch_adap().update(AP::ins().get_loop_rate_hz(), rate_pitch_target_rads, rate_rads.y);
+
+}
+else
+{
+    if (_flags_heli.leaky_i) {
+        _pid_rate_pitch.update_leaky_i(AC_ATTITUDE_HELI_RATE_INTEGRATOR_LEAK_RATE);
     }
 
-    // output to motors
-    _motors.set_roll(roll_out);
-    _motors.set_pitch(pitch_out);
+    float pitch_pid = _pid_rate_pitch.update_all(rate_pitch_target_rads, rate_rads.y,  _motors.limit.pitch) + _actuator_sysid.y;
 
-    // Piro-Comp, or Pirouette Compensation is a pre-compensation calculation, which basically rotates the Roll and Pitch Rate I-terms as the
-    // helicopter rotates in yaw.  Much of the built-up I-term is needed to tip the disk into the incoming wind.  Fast yawing can create an instability
-    // as the built-up I-term in one axis must be reduced, while the other increases.  This helps solve that by rotating the I-terms before the error occurs.
-    // It does assume that the rotor aerodynamics and mechanics are essentially symmetrical about the main shaft, which is a generally valid assumption. 
-    if (_piro_comp_enabled) {
 
-        // used to hold current I-terms while doing piro comp:
-        const float piro_roll_i = _pid_rate_roll.get_i();
-        const float piro_pitch_i = _pid_rate_pitch.get_i();
+    float pitch_ff = _pid_rate_pitch.get_ff();
 
-        Vector2f yawratevector;
-        yawratevector.x     = cosf(-rate_rads.z * _dt);
-        yawratevector.y     = sinf(-rate_rads.z * _dt);
-        yawratevector.normalize();
 
-        _pid_rate_roll.set_integrator(piro_roll_i * yawratevector.x - piro_pitch_i * yawratevector.y);
-        _pid_rate_pitch.set_integrator(piro_pitch_i * yawratevector.x + piro_roll_i * yawratevector.y);
-    }
+    pitch_out = pitch_pid + pitch_ff;
+}
+
+if (fabsf(pitch_out) > AC_ATTITUDE_RATE_RP_CONTROLLER_OUT_MAX) {
+    pitch_out = constrain_float(pitch_out, -AC_ATTITUDE_RATE_RP_CONTROLLER_OUT_MAX, AC_ATTITUDE_RATE_RP_CONTROLLER_OUT_MAX);
+    _flags_heli.limit_pitch = true;
+} else {
+    _flags_heli.limit_pitch = false;
+}
+
+// output to motors
+_motors.set_roll(roll_out);
+_motors.set_pitch(pitch_out);
+
+// Piro-Comp, or Pirouette Compensation is a pre-compensation calculation, which basically rotates the Roll and Pitch Rate I-terms as the
+// helicopter rotates in yaw.  Much of the built-up I-term is needed to tip the disk into the incoming wind.  Fast yawing can create an instability
+// as the built-up I-term in one axis must be reduced, while the other increases.  This helps solve that by rotating the I-terms before the error occurs.
+// It does assume that the rotor aerodynamics and mechanics are essentially symmetrical about the main shaft, which is a generally valid assumption. 
+if (_piro_comp_enabled) {
+
+    // used to hold current I-terms while doing piro comp:
+    const float piro_roll_i = _pid_rate_roll.get_i();
+    const float piro_pitch_i = _pid_rate_pitch.get_i();
+
+    Vector2f yawratevector;
+    yawratevector.x     = cosf(-rate_rads.z * _dt);
+    yawratevector.y     = sinf(-rate_rads.z * _dt);
+    yawratevector.normalize();
+
+    _pid_rate_roll.set_integrator(piro_roll_i * yawratevector.x - piro_pitch_i * yawratevector.y);
+    _pid_rate_pitch.set_integrator(piro_pitch_i * yawratevector.x + piro_roll_i * yawratevector.y);
+}
 
 }
 

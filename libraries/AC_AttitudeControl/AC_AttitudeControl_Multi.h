@@ -4,6 +4,7 @@
 /// @brief   ArduCopter attitude control library
 
 #include "AC_AttitudeControl.h"
+#include <ADAP_Control/ADAP_Control.h>
 #include <AP_Motors/AP_MotorsMulticopter.h>
 
 // default rate controller PID gains
@@ -51,6 +52,10 @@ public:
     AC_PID& get_rate_pitch_pid() override { return _pid_rate_pitch; }
     AC_PID& get_rate_yaw_pid() override { return _pid_rate_yaw; }
 
+    // Adaptive ctrl accessors
+    ADAP_Control& get_rate_roll_adap() {return _adap_ctrl_roll; }
+    ADAP_Control& get_rate_pitch_adap() {return _adap_ctrl_pitch; }
+
     // Update Alt_Hold angle maximum
     void update_althold_lean_angle_max(float throttle_in) override;
 
@@ -93,6 +98,9 @@ protected:
     AC_PID                _pid_rate_roll;
     AC_PID                _pid_rate_pitch;
     AC_PID                _pid_rate_yaw;
+
+    ADAP_Control          _adap_ctrl_roll;
+    ADAP_Control          _adap_ctrl_pitch;
 
     AP_Float              _thr_mix_man;     // throttle vs attitude control prioritisation used when using manual throttle (higher values mean we prioritise attitude control over throttle)
     AP_Float              _thr_mix_min;     // throttle vs attitude control prioritisation used when landing (higher values mean we prioritise attitude control over throttle)
