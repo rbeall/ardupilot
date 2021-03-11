@@ -71,6 +71,9 @@ void ADAP_Control::reset(uint16_t loop_rate_hz)
     theta = 1.0;
     omega = 1.0;
     sigma = 0.0;
+    theta_dot0 = 1.0;
+    omega_dot0 = 1.0;
+    sigma_dot0 = 0.0;
     integrator = 0.0;
 
     float u_cutoff_hz = w0/(2*M_PI); //convert cutoff freq from rad/s to hz
@@ -88,7 +91,7 @@ void ADAP_Control::reset(uint16_t loop_rate_hz)
  */
 float ADAP_Control::trapezoidal_integration(float y0, float y1_dot, float dt, float &y0_dot)
 {
-    float y1 = y0 + (dt/2)*(y0_dot+y1_dot);
+    float y1 = y0 + (dt/2.0)*(y0_dot+y1_dot);
     y0_dot = y1_dot;
 
     return y1;
@@ -118,6 +121,13 @@ float ADAP_Control::update(uint16_t loop_rate_hz, float target_rate, float senso
     }
 
     dt = (now - last_run_us) * 1.0e-6;
+
+    // non monotonic clock?
+    if ( dt <= 0 )
+    {
+        return constrain_float(u_lowpass/u_limit, -1, 1);
+    }
+
     last_run_us = now;
 
 
@@ -150,7 +160,7 @@ float ADAP_Control::update(uint16_t loop_rate_hz, float target_rate, float senso
     
     // State Predictor (first order single pole recursive filter)
     // Reference/Companion Model
-    float alpha_filt = exp(-alpha*dt); //alpha in rad/s
+    float alpha_filt = expf(-alpha*dt); //alpha in rad/s
     alpha_filt = constrain_float(alpha_filt, 0.0, 1.0);
     float beta_filt = 1-alpha_filt;
 
@@ -166,15 +176,15 @@ float ADAP_Control::update(uint16_t loop_rate_hz, float target_rate, float senso
     float Pb = 1/(2*alpha);
 
     // Projection Operator
-    theta_dot = projection_operator(theta,-gamma_theta*x_error*Pb*x,theta_epsilon,theta_max,theta_min);
-    omega_dot = projection_operator(omega,-gamma_omega*x_error*Pb*u_lowpass,omega_epsilon,omega_max,omega_min);
-    sigma_dot = projection_operator(sigma,-gamma_sigma*x_error*Pb,sigma_epsilon,sigma_max,sigma_min);
+    theta_dot1 = projection_operator(theta,-gamma_theta*x_error*Pb*x,theta_epsilon,theta_max,theta_min);
+    omega_dot1 = projection_operator(omega,-gamma_omega*x_error*Pb*u_lowpass,omega_epsilon,omega_max,omega_min);
+    sigma_dot1 = projection_operator(sigma,-gamma_sigma*x_error*Pb,sigma_epsilon,sigma_max,sigma_min);
 
     // Parameter Update using Trapezoidal integration
     if (!saturated) {
-        theta = trapezoidal_integration(theta, theta_dot, dt, theta1);
-        omega = trapezoidal_integration(omega, omega_dot, dt, omega1);
-        sigma = trapezoidal_integration(sigma, sigma_dot, dt, sigma1);
+        theta = trapezoidal_integration(theta, theta_dot1, dt, theta_dot0);
+        omega = trapezoidal_integration(omega, omega_dot1, dt, omega_dot0);
+        sigma = trapezoidal_integration(sigma, sigma_dot1, dt, sigma_dot0);
     }
 
     theta = constrain_float(theta, theta_min, theta_max);
@@ -233,9 +243,9 @@ void ADAP_Control::adaptive_tuning_send(mavlink_channel_t chan, uint8_t axis)
                                  theta,
                                  omega,
                                  sigma,
-                                 theta_dot,
-                                 omega_dot,
-                                 sigma_dot,
+                                 theta_dot1,
+                                 omega_dot1,
+                                 sigma_dot1,
                                  x_m,
                                  u_lowpass,
                                  u);

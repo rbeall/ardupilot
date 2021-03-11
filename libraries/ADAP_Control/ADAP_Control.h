@@ -66,13 +66,13 @@ private:
     float u_lowpass;
     float u_sp;
     float x_m;
-    float theta_dot;
-    float omega_dot;
-    float sigma_dot;
+    float theta_dot1;
+    float omega_dot1;
+    float sigma_dot1;
     float out1;
-    float theta1;
-    float omega1;
-    float sigma1;
+    float theta_dot0;
+    float omega_dot0;
+    float sigma_dot0;
     float f;
     float f_dot;
     
