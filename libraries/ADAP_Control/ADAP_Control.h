@@ -8,11 +8,6 @@
 
 class ADAP_Control {
 public:
-    ADAP_Control()
-    {
-        AP_Param::setup_object_defaults(this, var_info);
-    }
-    
 	ADAP_Control(const char *_log_msg_name) :
         log_msg_name(_log_msg_name)
     { 
@@ -24,10 +19,10 @@ public:
     
     void adaptive_tuning_send(mavlink_channel_t chan, uint8_t pid_axis);
 
-    // // setup optional PID_Info structure
-    // void set_pid_info(DataFlash_Class::PID_Info *_pid_info) {
-    //     pid_info = _pid_info;
-    // }
+    // setup optional PID_Info structure
+    void set_pid_info(AP_Logger::PID_Info *_pid_info) {
+        pid_info = _pid_info;
+    }
     
 	static const struct AP_Param::GroupInfo var_info[];
 
@@ -82,10 +77,10 @@ private:
     float f_dot;
     
 	LowPassFilter2pFloat r_filter;
-        LowPassFilter2pFloat u_filter;
+    LowPassFilter2pFloat u_filter;
 
     // optional PID_Info structure
-    // DataFlash_Class::PID_Info *pid_info;
+    AP_Logger::PID_Info *pid_info;
     
     void reset(uint16_t loop_rate_hz);
     float projection_operator(float theta, float y, float epsilon, float theta_max, float theta_min) const;

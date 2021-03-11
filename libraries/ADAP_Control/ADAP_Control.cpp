@@ -195,22 +195,6 @@ float ADAP_Control::update(uint16_t loop_rate_hz, float target_rate, float senso
                         degrees(x_error),
                         degrees(u_lowpass));
 
-    // DataFlash_Class::instance()->Log_Write(log_msg_name, "TimeUS,Dt,Atheta,Aomega,Asigma,Aeta,Axm,Ax,Ar,Axerr,AuL", "Qffffffffff",
-    //                                        now,
-    //                                        dt,
-    //                                        theta,
-    //                                        omega,
-    //                                        sigma,
-    //                                        eta,
-    //                                        degrees(x_m),
-    //                                        degrees(x),
-    //                                        degrees(r),
-    //                                        degrees(x_error),
-    //                                        degrees(u_lowpass));
-
-    
- 
-
     return constrain_float(u_lowpass/u_limit, -1, 1);
 }
 
@@ -239,7 +223,7 @@ float ADAP_Control::projection_operator(float Theta, float y, float epsilon, flo
 */
 void ADAP_Control::adaptive_tuning_send(mavlink_channel_t chan, uint8_t axis)
 {
-        if (!enabled() || !HAVE_PAYLOAD_SPACE(chan, ADAP_TUNING)) {
+    if (!enabled() || !HAVE_PAYLOAD_SPACE(chan, ADAP_TUNING)) {
         return;
     }
     mavlink_msg_adap_tuning_send(chan, axis,

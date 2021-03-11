@@ -165,6 +165,6 @@ private:
     AC_HELI_PID     _pid_rate_pitch;
     AC_HELI_PID     _pid_rate_yaw;
 
-    ADAP_Control          _adap_ctrl_roll;
-    ADAP_Control          _adap_ctrl_pitch;
+    ADAP_Control          _adap_ctrl_roll{"ADAR"};
+    ADAP_Control          _adap_ctrl_pitch{"ADAP"};
 };

@@ -246,6 +246,13 @@ void GCS_MAVLINK_Copter::send_pid_tuning()
                                         pid_info->I,
                                         pid_info->D);
         }
+#if FRAME_CONFIG == HELI_FRAME
+    // Send adaptive tuning over mavlink for pitch if enabled
+    copter.attitude_control->get_rate_pitch_adap().adaptive_tuning_send(chan, PID_TUNING_PITCH);
+
+    // Send adaptive tuning over mavlink for roll if enabled
+    copter.attitude_control->get_rate_roll_adap().adaptive_tuning_send(chan, PID_TUNING_ROLL);
+#endif   
     }
 }
 
