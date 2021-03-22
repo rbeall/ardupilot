@@ -144,11 +144,8 @@ float ADAP_Control::update(uint16_t loop_rate_hz, float target_rate, float senso
     // kD(s) (cascaded second order low pass + simple integrator)
     u_lowpass = u_filter.apply(u);
 
-    // Turn off integrator when not flying
-    bool use_integrator = 1; //(dt > 0 && aspeed > 0.5f*10.0f);
-    //bool use_integrator = (dt > 0 && aspeed > 0.5f*float(aparm.airspeed_min));
 
-    if (!saturated && use_integrator) {
+    if (!saturated) {
     	integrator = trapezoidal_integration(integrator, u_lowpass, dt, out1);
         u_lowpass = constrain_float(-k*integrator,-u_limit,u_limit);
     }
