@@ -211,6 +211,10 @@ float ADAP_Control::projection_operator(float Theta, float y, float epsilon, flo
         // Calculate convex function
         // Nominal un-saturated value is above zero line on a parabolic curve
         // Steepness of curve is set by epsilon
+        if (epsilon < 100)
+        {
+                epsilon = 100; // keep epsilon from dividing by zero
+        }
         float f_diff2 = (th_max-th_min)*(th_max-th_min);
         float f_theta = (-4*(th_min - Theta) * (th_max - Theta))/(epsilon*f_diff2);
         float f_theta_dot = (4*(th_min + th_max - (2*Theta)))/(epsilon*f_diff2);
