@@ -5,30 +5,31 @@
 #include <Filter/LowPassFilter2p.h>
 //#include <DataFlash/DataFlash.h>
 #include <AP_Logger/AP_Logger.h>
+#include <vector>
 
 class ADAP_Control {
 public:
-	ADAP_Control(const char *_log_msg_name) :
+    ADAP_Control(const char *_log_msg_name) :
         log_msg_name(_log_msg_name)
-    { 
-		AP_Param::setup_object_defaults(this, var_info);
-	}
+    {
+    AP_Param::setup_object_defaults(this, var_info);
+    }
 
     // calculate new output value
     float update(uint16_t loop_rate_hz, float target_rate, float sensor_rate);
-    
+
     void adaptive_tuning_send(mavlink_channel_t chan, uint8_t pid_axis);
 
     // setup optional PID_Info structure
     void set_pid_info(AP_Logger::PID_Info *_pid_info) {
         pid_info = _pid_info;
     }
-    
-	static const struct AP_Param::GroupInfo var_info[];
+
+    static const struct AP_Param::GroupInfo var_info[];
 
     // return true if the controller is enabled
     bool enabled(void) const;
-    
+
 private:
 
     const char *log_msg_name;
@@ -51,6 +52,7 @@ private:
     AP_Float w0;
     AP_Float k;
     AP_Float kg;
+    AP_Float model_delay;
 
     // internal state
     uint64_t last_run_us;
@@ -75,14 +77,26 @@ private:
     float sigma_dot0;
     float f;
     float f_dot;
-    
-	LowPassFilter2pFloat r_filter;
+
+    // Digital Delay
+    uint8_t read_pointer;
+    uint8_t write_pointer;
+    std::vector<float> delay_buffer;
+
+    //Low Pass Filters
+    LowPassFilter2pFloat r_filter;
     LowPassFilter2pFloat u_filter;
 
     // optional PID_Info structure
     AP_Logger::PID_Info *pid_info;
-    
+
     void reset(uint16_t loop_rate_hz);
     float projection_operator(float theta, float y, float epsilon, float theta_max, float theta_min) const;
     float trapezoidal_integration(float y0, float y1_dot, float dt, float &y0_dot);
+
+    //digital delay
+    bool reset_delay(uint16_t loop_rate_hz);
+    float digital_delay(uint16_t loop_rate_hz, float in);
+
+
 };

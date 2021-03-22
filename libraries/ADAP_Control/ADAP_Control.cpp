@@ -24,6 +24,7 @@
 #include <GCS_MAVLink/GCS.h>
 #include "ADAP_Control.h"
 #include <stdio.h>
+#include <vector>
 
 extern const AP_HAL::HAL& hal;
 
@@ -46,6 +47,7 @@ const AP_Param::GroupInfo ADAP_Control::var_info[] = {
     AP_GROUPINFO("W0",      15, ADAP_Control, w0, 25),
     AP_GROUPINFO("K",       16, ADAP_Control, k, 0.45),
     AP_GROUPINFO("KG",      17, ADAP_Control, kg, 1.0),
+    AP_GROUPINFO("DELAY",   18, ADAP_Control, model_delay, 0.0),
 
     AP_GROUPEND
 };
@@ -83,6 +85,11 @@ void ADAP_Control::reset(uint16_t loop_rate_hz)
     float r_cutoff_hz = alpha/(2*M_PI); //convert cutoff freq from rad/s to hz
     r_filter.set_cutoff_frequency(loop_rate_hz, r_cutoff_hz);
     r_filter.reset();
+
+
+    write_pointer = 0;  //300ms delay at 400hz loop rate = 120 float vector for 480 bytes
+    read_pointer = 0;
+    reset_delay(loop_rate_hz);
 }
 
 
@@ -162,6 +169,7 @@ float ADAP_Control::update(uint16_t loop_rate_hz, float target_rate, float senso
     float beta_filt = 1-alpha_filt;
 
     x_m = alpha_filt*x_m + beta_filt*(u_sp);
+    x_m = digital_delay(loop_rate_hz,x_m);
 
     x_error = x_m - x;
 
@@ -227,6 +235,36 @@ float ADAP_Control::projection_operator(float Theta, float y, float epsilon, flo
         }
 
            return projection_out;
+}
+
+// Digital delay
+
+bool ADAP_Control::reset_delay(uint16_t loop_rate_hz)
+{
+    read_pointer = 0;
+    write_pointer = 0;
+    delay_buffer.clear();
+    delay_buffer.resize(0.3f * loop_rate_hz); //maximum buffer of 0.3 seconds
+    read_pointer = (write_pointer - (int)(model_delay*loop_rate_hz) + delay_buffer.size()) % delay_buffer.size();
+
+    return true;
+}
+
+float ADAP_Control::digital_delay(uint16_t loop_rate_hz, float in)
+{
+    read_pointer = (write_pointer - (int)(model_delay*loop_rate_hz) + delay_buffer.size()) % delay_buffer.size();
+    delay_buffer[write_pointer] = in;
+    float out = delay_buffer[read_pointer];
+
+    // Increment and wrap both pointers
+    write_pointer++;
+    if(write_pointer >= delay_buffer.size())
+        write_pointer = 0;
+    read_pointer++;
+    if(read_pointer >= delay_buffer.size())
+        read_pointer = 0;
+
+    return out;
 }
 
 /*
