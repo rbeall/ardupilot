@@ -46,7 +46,7 @@ const AP_Param::GroupInfo ADAP_Control::var_info[] = {
     AP_GROUPINFO("W0",      15, ADAP_Control, w0, 25),
     AP_GROUPINFO("K",       16, ADAP_Control, k, 0.45),
     AP_GROUPINFO("KG",      17, ADAP_Control, kg, 1.0),
-    
+
     AP_GROUPEND
 };
 
@@ -80,7 +80,7 @@ void ADAP_Control::reset(uint16_t loop_rate_hz)
     u_filter.set_cutoff_frequency(loop_rate_hz, u_cutoff_hz);
     u_filter.reset();
 
-    float r_cutoff_hz = (alpha-2)/(2*M_PI); //convert cutoff freq from rad/s to hz
+    float r_cutoff_hz = alpha/(2*M_PI); //convert cutoff freq from rad/s to hz
     r_filter.set_cutoff_frequency(loop_rate_hz, r_cutoff_hz);
     r_filter.reset();
 }
@@ -110,7 +110,7 @@ float ADAP_Control::update(uint16_t loop_rate_hz, float target_rate, float senso
 
     x = sensor_rate;
     r = target_rate;
-    r = r_filter.apply(r);    
+    r = r_filter.apply(r);
 
     //reset reference model at initialization
     uint64_t now = AP_HAL::micros64();
@@ -154,10 +154,10 @@ float ADAP_Control::update(uint16_t loop_rate_hz, float target_rate, float senso
     }
 
     else {
-        u_lowpass *= -k;  
+        u_lowpass *= -k;
     }
 
-    
+
     // State Predictor (first order single pole recursive filter)
     // Reference/Companion Model
     float alpha_filt = expf(-alpha*dt); //alpha in rad/s
