@@ -252,6 +252,8 @@ bool ADAP_Control::reset_delay(uint16_t loop_rate_hz)
 
 float ADAP_Control::digital_delay(uint16_t loop_rate_hz, float in)
 {
+    if(model_delay > (0.3f*(delay_buffer.size()-1))/delay_buffer.size());
+        model_delay = 0.3f*(delay_buffer.size()-1)/delay_buffer.size();
     read_pointer = (write_pointer - (int)(model_delay*loop_rate_hz) + delay_buffer.size()) % delay_buffer.size();
     delay_buffer[write_pointer] = in;
     float out = delay_buffer[read_pointer];
