@@ -244,7 +244,7 @@ bool ADAP_Control::reset_delay(uint16_t loop_rate_hz)
     read_pointer = 0;
     write_pointer = 0;
     delay_buffer.clear();
-    delay_buffer.resize(0.3f * loop_rate_hz); //maximum buffer of 0.3 seconds
+    delay_buffer.resize(0.3f * loop_rate_hz, 0.0f); //maximum buffer of 0.3 seconds
     read_pointer = (write_pointer - (int)(model_delay*loop_rate_hz) + delay_buffer.size()) % delay_buffer.size();
 
     return true;
@@ -252,7 +252,7 @@ bool ADAP_Control::reset_delay(uint16_t loop_rate_hz)
 
 float ADAP_Control::digital_delay(uint16_t loop_rate_hz, float in)
 {
-    if(model_delay > (0.3f*(delay_buffer.size()-1))/delay_buffer.size());
+    if(model_delay > (0.3f*(delay_buffer.size()-1))/delay_buffer.size())
         model_delay = 0.3f*(delay_buffer.size()-1)/delay_buffer.size();
     read_pointer = (write_pointer - (int)(model_delay*loop_rate_hz) + delay_buffer.size()) % delay_buffer.size();
     delay_buffer[write_pointer] = in;
