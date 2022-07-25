@@ -1,0 +1,78 @@
+name: Build Targets
+
+on: [push, pull_request, workflow_dispatch]
+# paths:
+# - "*"
+# - "!README.md" <-- don't rebuild on doc change
+concurrency:
+  group: ci-${{github.workflow}}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    container: ardupilot/ardupilot-dev-chibios:latest
+    strategy:
+      fail-fast: false  # don't cancel if a job from the matrix fails
+      matrix:
+        toolchain: [
+            base,  # GCC
+        ]
+        config: [
+            CubeOrange-KHA,
+            mRoPixracerPro
+        ]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          path: 'target'
+          submodules: 'recursive'
+      # Put ccache into github cache for faster build
+      - name: Prepare ccache timestamp
+        id: ccache_cache_timestamp
+        run: |
+          NOW=$(date -u +"%F-%T")
+          echo "::set-output name=timestamp::${NOW}"
+      - name: ccache cache files
+        uses: actions/cache@v2
+        with:
+          path: ~/.ccache
+          key: ${{github.workflow}}-ccache-${{ matrix.toolchain }}-${{steps.ccache_cache_timestamp.outputs.timestamp}}
+          restore-keys: ${{github.workflow}}-ccache-${{ matrix.toolchain }}-  # restore ccache from either previous build on this branch or on master
+      - name: setup ccache
+        run: |
+          mkdir -p ~/.ccache
+          echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+          echo "compression = true" >> ~/.ccache/ccache.conf
+          echo "compression_level = 6" >> ~/.ccache/ccache.conf
+          echo "max_size = 400M" >> ~/.ccache/ccache.conf
+          ccache -s
+          ccache -z
+      - name: Build ArduPlane ${{matrix.config}} ${{ matrix.toolchain }}
+        if: ${{matrix.config != 'kha2-periph'}}
+        env:
+          CI_BUILD_TARGET: ${{matrix.config}}
+        shell: bash
+        run: |
+          PATH="/github/home/.local/bin:$PATH"
+          cd target
+          ./waf configure --board ${{matrix.config}}
+          ./waf plane
+
+      - name: Build AP_Periph ${{matrix.config}} ${{ matrix.toolchain }}
+        if: ${{matrix.config == 'kha2-periph'}}
+        env:
+          CI_BUILD_TARGET: ${{matrix.config}}
+        shell: bash
+        run: |
+          PATH="/github/home/.local/bin:$PATH"
+          cd target
+          ./waf configure --board ${{matrix.config}}
+          ./waf AP_Periph
+
+      - name: Upload build target artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{matrix.config}}
+          path: ${{ github.workspace }}/target/build/${{matrix.config}}/bin/*.*
+          retention-days: 14
