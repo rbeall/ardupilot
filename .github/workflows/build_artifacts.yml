@@ -73,14 +73,15 @@ jobs:
       - name: Rename artifacts
         shell: bash
         run: |
-          hash=$(git rev-parse --short HEAD)
-          for file in ${{ github.workspace }}/target/build/${{matrix.config}}/bin/*
-          do
-            name="${file%.*}"
-            ext="${file##*.}"
-            echo $file $name-$hash.${ext}
-            mv ${{ github.workspace }}/target/build/${{matrix.config}}/bin/$file ${{ github.workspace }}/target/build/${{matrix.config}}/bin/${name%%_*}-$hash.${ext}
-          done
+           build_path=${{ github.workspace }}/target/build/${{matrix.config}}/bin/
+
+           for file in $build_path/*
+           do
+              filename=$(basename -- "$file")
+              ext="${filename##*.}"
+              name="${filename%.*}"
+              mv $build_path$filename $build_path$name-$hash.$ext
+           done
 
       - name: Upload build target artifacts
         uses: actions/upload-artifact@v2
