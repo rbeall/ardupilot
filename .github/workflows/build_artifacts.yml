@@ -79,7 +79,7 @@ jobs:
           do
             name="${file%.*}"
             ext="${file##*.}"
-            echo $file $name-$hash.${ext}
+            mv $file $name-$hash.${ext}
           done
 
       - name: Upload build target artifacts
