@@ -73,13 +73,13 @@ jobs:
       - name: Rename artifacts
         shell: bash
         run: |
-          cd ${{ github.workspace }}/target/build/${{matrix.config}}/bin/
           hash=$(git rev-parse --short HEAD)
-          for file in *
+          for file in ${{ github.workspace }}/target/build/${{matrix.config}}/bin/*
           do
             name="${file%.*}"
             ext="${file##*.}"
-            mv $file $name-$hash.${ext}
+            echo $file $name-$hash.${ext}
+            mv ${{ github.workspace }}/target/build/${{matrix.config}}/bin/$file ${{ github.workspace }}/target/build/${{matrix.config}}/bin/${name%%_*}-$hash.${ext}
           done
 
       - name: Upload build target artifacts
