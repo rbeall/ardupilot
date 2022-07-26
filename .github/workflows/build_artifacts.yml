@@ -19,7 +19,7 @@ jobs:
             base,  # GCC
         ]
         config: [
-            CubeOrange-KHA,
+            CubeOrange,
             mRoPixracerPro
         ]
     steps:
