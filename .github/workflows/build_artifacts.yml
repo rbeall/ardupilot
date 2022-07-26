@@ -70,6 +70,18 @@ jobs:
           ./waf configure --board ${{matrix.config}}
           ./waf AP_Periph
 
+      - name: Rename artifacts
+        shell: bash
+        run: |
+          cd ${{ github.workspace }}/target/build/${{matrix.config}}/bin/
+          hash=$(git rev-parse --short HEAD)
+          for file in *
+          do
+            name="${file#*}"
+            ext=${file#*.}
+            mv $file ${name%%_*}-$hash.${ext}
+          done
+
       - name: Upload build target artifacts
         uses: actions/upload-artifact@v2
         with:
