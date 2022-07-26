@@ -77,9 +77,9 @@ jobs:
           hash=$(git rev-parse --short HEAD)
           for file in *
           do
-            name="${file#*}"
-            ext=${file#*.}
-            mv $file ${name%%_*}-$hash.${ext}
+            name="${file%.*}"
+            ext="${file##*.}"
+            echo $file $name-$hash.${ext}
           done
 
       - name: Upload build target artifacts
