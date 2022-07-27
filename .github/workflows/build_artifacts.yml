@@ -70,22 +70,13 @@ jobs:
           ./waf configure --board ${{matrix.config}}
           ./waf AP_Periph
 
-      - name: Rename artifacts
-        shell: bash
-        run: |
-           build_path=${{ github.workspace }}/target/build/${{matrix.config}}/bin/
-
-           for file in $build_path/*
-           do
-              filename=$(basename -- "$file")
-              ext="${filename##*.}"
-              name="${filename%.*}"
-              mv $build_path$filename $build_path$name-$hash.$ext
-           done
+      - name: Get short SHA
+        id: sha
+        run: echo "::set-output name=sha8::$(echo ${GITHUB_SHA} | cut -c1-8)"
 
       - name: Upload build target artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: ${{matrix.config}}
-          path: ${{ github.workspace }}/target/build/${{matrix.config}}/bin/*.*
-          retention-days: 14
+            name: ${{matrix.config}}-${{steps.sha.outputs.sha8}}
+            path: ${{github.workspace}}/target/build/${{matrix.config}}/bin/*.*
+            retention-days: 14
