@@ -1,0 +1,14 @@
+name: Sync Ardupilot Master
+
+on:
+  schedule:
+  - cron: "0 0 * * *" # every 15 minutes. set to whatever interval you like
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+      with:
+        fetch-depth: 10  # greater than the number of commits you made
+    - uses: ArduPilot/ardupilot@master
