@@ -2,7 +2,7 @@ name: Sync Ardupilot Master
 
 on:
   schedule:
-  - cron: "0 0 * * *" # every 15 minutes. set to whatever interval you like
+  - cron: "0 0 * * *" # every hr. set to whatever interval you like
 
 jobs:
   sync:
