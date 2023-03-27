@@ -182,7 +182,7 @@ void AP_MotorsTri::output_armed_stabilizing()
         _pivot_angle = constrain_float(_pivot_angle, -radians(_yaw_servo_angle_max_deg), radians(_yaw_servo_angle_max_deg));
     }
 
-    float pivot_thrust_max = cosf(_pivot_angle);
+    float pivot_thrust_max = 1.0f; //cosf(_pivot_angle);
     float thrust_max = 1.0f;
 
     // sanity check throttle is above zero and below current limited throttle
@@ -204,7 +204,7 @@ void AP_MotorsTri::output_armed_stabilizing()
 
     _thrust_right = roll_thrust * -0.5f + pitch_thrust * 0.5f;
     _thrust_left = roll_thrust * 0.5f + pitch_thrust * 0.5f;
-    _thrust_rear = pitch_thrust * -0.5f;
+    _thrust_rear = pitch_thrust * -0.34155f;
 
     // calculate roll and pitch for each motor
     // set rpy_low and rpy_high to the lowest and highest values of the motors
@@ -268,11 +268,11 @@ void AP_MotorsTri::output_armed_stabilizing()
     // add scaled roll, pitch, constrained yaw and throttle for each motor
     _thrust_right = throttle_thrust_best_plus_adj + rpy_scale * _thrust_right;
     _thrust_left = throttle_thrust_best_plus_adj + rpy_scale * _thrust_left;
-    _thrust_rear = throttle_thrust_best_plus_adj + rpy_scale * _thrust_rear;
+    _thrust_rear = throttle_thrust_best_plus_adj * 0.6831f + rpy_scale * _thrust_rear;
 
     // scale pivot thrust to account for pivot angle
     // we should not need to check for divide by zero as _pivot_angle is constrained to the 5deg ~ 80 deg range
-    _thrust_rear = _thrust_rear / cosf(_pivot_angle);
+    // _thrust_rear = _thrust_rear / cosf(_pivot_angle);
 
     // constrain all outputs to 0.0f to 1.0f
     // test code should be run with these lines commented out as they should not do anything
