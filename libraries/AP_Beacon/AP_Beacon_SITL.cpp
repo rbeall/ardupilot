@@ -105,9 +105,9 @@ void AP_Beacon_SITL::update(void)
     Vector3f beac_pos3d(beac_diff.x, beac_diff.y, (beacon_loc.alt - beacon_origin.alt)*1.0e-2f);
     Vector3f beac_veh_offset = veh_pos3d - beac_pos3d;
 
-    set_beacon_position(beacon_id, beac_pos3d);
-    set_beacon_distance(beacon_id, beac_veh_offset.length());
-    set_vehicle_position(veh_pos3d, 0.5f);
+    set_beacon_position(beacon_id, beac_pos3d); //sets simualted beacon position relative to beacon origin for beacon id N
+    set_beacon_distance(beacon_id, beac_veh_offset.length()); //sets simulated range between beacon id N and vehicle
+    set_vehicle_position(veh_pos3d, 0.5f); //sets position of vehicle relative to the beacon origin
     last_update_ms = now;
 }
 
