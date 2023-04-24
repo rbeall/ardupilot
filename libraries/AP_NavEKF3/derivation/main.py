@@ -557,6 +557,17 @@ def quaternion_error_propagation():
     quat_code_generator.write_matrix(Matrix(P_rot_vec_simple[1]), "tiltErrCovMat", False, "[", "]")
     quat_code_generator.close()
 
+def time_of_flight_observation(P,state, px, py, pz):
+    obs_var = symbols("R_TOF", real=True) # time of flight measurement noise variance
+
+    observation = sqrt((px**2)+(py**2)+(pz**2))
+
+    equations = generate_observation_equations(P,state,observation,obs_var)
+
+    tof_code_generator = CodeGenerator("./generated/tof_generated.cpp")
+    write_equations_to_file(equations,tof_code_generator,1)
+    tof_code_generator.close()
+
 def generate_code():
     print('Starting code generation:')
     print('Creating symbolic variables ...')
@@ -695,6 +706,8 @@ def generate_code():
     body_frame_accel_observation(P,state,R_to_body,vx,vy,vz,wx,wy)
     print('Generating yaw estimator code ...')
     yaw_estimator()
+    print('Generating TOF estimator code ...')
+    time_of_flight_observation(P,state,px, py, pz)
     print('Code generation finished!')
 
 
