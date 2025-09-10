@@ -72,12 +72,19 @@ void ADAP_Control::reset(uint16_t loop_rate_hz)
     omega = 1.0;
     sigma = 0.0;
     integrator = 0.0;
+    
+    // Reset trapezoidal integration state variables
+    out1 = 0.0;
+    theta1 = 0.0;
+    omega1 = 0.0;
+    sigma1 = 0.0;
 
     float u_cutoff_hz = w0/(2*M_PI); //convert cutoff freq from rad/s to hz
     u_filter.set_cutoff_frequency(loop_rate_hz, u_cutoff_hz);
     u_filter.reset();
 
-    float r_cutoff_hz = (alpha-2)/(2*M_PI); //convert cutoff freq from rad/s to hz
+    // Ensure positive cutoff frequency for r_filter
+    float r_cutoff_hz = fmax(0.1f, (alpha-2)/(2*M_PI)); //convert cutoff freq from rad/s to hz, ensure positive
     r_filter.set_cutoff_frequency(loop_rate_hz, r_cutoff_hz);
     r_filter.reset();
 }
@@ -120,6 +127,15 @@ float ADAP_Control::update(uint16_t loop_rate_hz, float target_rate, float senso
     dt = (now - last_run_us) * 1.0e-6;
     last_run_us = now;
 
+    // Sanity check dt to prevent divide-by-zero
+    if (dt <= 0 || dt > 1.0) {
+        return 0;
+    }
+
+    // Validate alpha to prevent divide-by-zero in Lyapunov calculation
+    if (alpha <= 0) {
+        return 0;
+    }
 
     // u (controller output to plant)
     eta = theta*x + omega*u_lowpass + sigma;
@@ -134,9 +150,8 @@ float ADAP_Control::update(uint16_t loop_rate_hz, float target_rate, float senso
     // kD(s) (cascaded second order low pass + simple integrator)
     u_lowpass = u_filter.apply(u);
 
-    // Turn off integrator when not flying
-    bool use_integrator = 1; //(dt > 0 && aspeed > 0.5f*10.0f);
-    //bool use_integrator = (dt > 0 && aspeed > 0.5f*float(aparm.airspeed_min));
+    // Turn off integrator when not flying (below 5 m/s airspeed)
+    bool use_integrator = (dt > 0 && aspeed > 5.0f);
 
     if (!saturated && use_integrator) {
     	integrator = trapezoidal_integration(integrator, u_lowpass, dt, out1);
@@ -201,6 +216,10 @@ float ADAP_Control::update(uint16_t loop_rate_hz, float target_rate, float senso
 
 float ADAP_Control::projection_operator(float Theta, float y, float epsilon, float th_max, float th_min) const
 {
+        // Prevent divide-by-zero if bounds are equal or epsilon is zero
+        if (fabs(th_max - th_min) < 1e-6 || epsilon <= 0) {
+            return y;
+        }
 
         // Calculate convex function
         // Nominal un-saturated value is above zero line on a parabolic curve
